@@ -34,7 +34,7 @@ export default function App() {
     <BrowserRouter>
       <Navbar wallet={wallet} onConnect={handleConnect} onDisconnect={handleDisconnect} />
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Home wallet={wallet} />} />
         <Route path="/submit" element={
           <Submit
             wallet={wallet}

@@ -8,7 +8,9 @@ export default function Admin() {
   const [pw, setPw] = useState('');
   const [pwError, setPwError] = useState('');
   const [dapps, setDapps] = useState([]);
+  const [reports, setReports] = useState([]);
   const [filter, setFilter] = useState('pending');
+  const [tab, setTab] = useState('dapps');
   const [loading, setLoading] = useState(false);
 
   function handleLogin() {
@@ -20,8 +22,9 @@ export default function Admin() {
   }
 
   useEffect(() => {
-    if (authed) fetchDapps();
-  }, [authed, filter]);
+    if (authed && tab === 'dapps') fetchDapps();
+    if (authed && tab === 'reports') fetchReports();
+  }, [authed, filter, tab]);
 
   async function fetchDapps() {
     setLoading(true);
@@ -34,6 +37,16 @@ export default function Admin() {
     setLoading(false);
   }
 
+  async function fetchReports() {
+    setLoading(true);
+    const { data } = await supabase
+      .from('reports')
+      .select('*, dapps(name, live_url)')
+      .order('created_at', { ascending: false });
+    setReports(data || []);
+    setLoading(false);
+  }
+
   async function updateStatus(id, status) {
     await supabase.from('dapps').update({ status }).eq('id', id);
     fetchDapps();
@@ -43,6 +56,11 @@ export default function Admin() {
     if (!window.confirm('Delete this listing permanently?')) return;
     await supabase.from('dapps').delete().eq('id', id);
     fetchDapps();
+  }
+
+  async function deleteReport(id) {
+    await supabase.from('reports').delete().eq('id', id);
+    fetchReports();
   }
 
   if (!authed) {
@@ -72,86 +90,114 @@ export default function Admin() {
       <div style={styles.container}>
         <div style={styles.header}>
           <h1 style={styles.title}>Admin Panel</h1>
-          <div style={styles.filterBtns}>
-            {['pending', 'approved', 'rejected'].map(f => (
+          <div style={styles.tabBtns}>
+            {['dapps', 'reports'].map(t => (
               <button
-                key={f}
-                onClick={() => setFilter(f)}
-                style={{
-                  ...styles.filterBtn,
-                  ...(filter === f ? styles.filterBtnActive : {}),
-                }}
+                key={t}
+                onClick={() => setTab(t)}
+                style={{ ...styles.filterBtn, ...(tab === t ? styles.filterBtnActive : {}) }}
               >
-                {f}
+                {t}
               </button>
             ))}
           </div>
         </div>
 
-        {loading ? (
-          <div style={styles.empty}>Loading...</div>
-        ) : dapps.length === 0 ? (
-          <div style={styles.empty}>No {filter} submissions.</div>
-        ) : (
-          <div style={styles.list}>
-            {dapps.map(d => (
-              <div key={d.id} style={styles.card}>
-                <div style={styles.cardTop}>
-                  <div>
-                    <div style={styles.cardName}>{d.name}</div>
-                    <div style={styles.cardMeta}>
-                      {d.category} · {shortenAddress(d.wallet_address)} ·{' '}
-                      {new Date(d.created_at).toLocaleDateString()}
+        {/* dApps tab */}
+        {tab === 'dapps' && (
+          <>
+            <div style={styles.filterBtns}>
+              {['pending', 'approved', 'rejected'].map(f => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  style={{ ...styles.filterBtn, ...(filter === f ? styles.filterBtnActive : {}) }}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+
+            {loading ? (
+              <div style={styles.empty}>Loading...</div>
+            ) : dapps.length === 0 ? (
+              <div style={styles.empty}>No {filter} submissions.</div>
+            ) : (
+              <div style={styles.list}>
+                {dapps.map(d => (
+                  <div key={d.id} style={styles.card}>
+                    <div style={styles.cardTop}>
+                      <div>
+                        <div style={styles.cardName}>{d.name}</div>
+                        <div style={styles.cardMeta}>
+                          {d.category} · {shortenAddress(d.wallet_address)} ·{' '}
+                          {new Date(d.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <span className={`status-${d.status}`} style={{ fontSize: 12, fontFamily: 'Space Mono, monospace', textTransform: 'uppercase' }}>
+                        {d.status}
+                      </span>
+                    </div>
+                    <p style={styles.cardDesc}>{d.description}</p>
+                    {d.logo_url && (
+                      <img src={d.logo_url} alt={d.name} style={styles.previewImg} />
+                    )}
+                    <div style={styles.cardLinks}>
+                      <a href={d.live_url} target="_blank" rel="noopener noreferrer" style={styles.link}>↗ Live URL</a>
+                      {d.contract_address && <span style={styles.mono}>{d.contract_address}</span>}
+                      {d.tx_hash && <span style={styles.mono}>tx: {d.tx_hash.slice(0, 20)}...</span>}
+                    </div>
+                    <div style={styles.actions}>
+                      {d.status !== 'approved' && (
+                        <button className="btn-primary" onClick={() => updateStatus(d.id, 'approved')} style={{ padding: '7px 16px', fontSize: 13 }}>
+                          Approve
+                        </button>
+                      )}
+                      {d.status !== 'rejected' && (
+                        <button className="btn-ghost" onClick={() => updateStatus(d.id, 'rejected')} style={{ padding: '7px 16px', fontSize: 13 }}>
+                          Reject
+                        </button>
+                      )}
+                      <button onClick={() => deleteDapp(d.id)} style={styles.deleteBtn}>Delete</button>
                     </div>
                   </div>
-                  <span className={`status-${d.status}`} style={{ fontSize: 12, fontFamily: 'Space Mono, monospace', textTransform: 'uppercase' }}>
-                    {d.status}
-                  </span>
-                </div>
-
-                <p style={styles.cardDesc}>{d.description}</p>
-
-                <div style={styles.cardLinks}>
-                  <a href={d.live_url} target="_blank" rel="noopener noreferrer" style={styles.link}>
-                    ↗ Live URL
-                  </a>
-                  {d.contract_address && (
-                    <span style={styles.mono}>{d.contract_address}</span>
-                  )}
-                  {d.tx_hash && (
-                    <span style={styles.mono}>tx: {d.tx_hash.slice(0, 20)}...</span>
-                  )}
-                </div>
-
-                <div style={styles.actions}>
-                  {d.status !== 'approved' && (
-                    <button
-                      className="btn-primary"
-                      onClick={() => updateStatus(d.id, 'approved')}
-                      style={{ padding: '7px 16px', fontSize: 13 }}
-                    >
-                      Approve
-                    </button>
-                  )}
-                  {d.status !== 'rejected' && (
-                    <button
-                      className="btn-ghost"
-                      onClick={() => updateStatus(d.id, 'rejected')}
-                      style={{ padding: '7px 16px', fontSize: 13 }}
-                    >
-                      Reject
-                    </button>
-                  )}
-                  <button
-                    onClick={() => deleteDapp(d.id)}
-                    style={styles.deleteBtn}
-                  >
-                    Delete
-                  </button>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+          </>
+        )}
+
+        {/* Reports tab */}
+        {tab === 'reports' && (
+          <>
+            {loading ? (
+              <div style={styles.empty}>Loading...</div>
+            ) : reports.length === 0 ? (
+              <div style={styles.empty}>No reports.</div>
+            ) : (
+              <div style={styles.list}>
+                {reports.map(r => (
+                  <div key={r.id} style={styles.card}>
+                    <div style={styles.cardTop}>
+                      <div>
+                        <div style={styles.cardName}>{r.dapps?.name || 'Unknown dApp'}</div>
+                        <div style={styles.cardMeta}>
+                          Reported by {shortenAddress(r.wallet_address)} · {new Date(r.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                      {r.dapps?.live_url && (
+                        <a href={r.dapps.live_url} target="_blank" rel="noopener noreferrer" style={styles.link}>↗ View</a>
+                      )}
+                    </div>
+                    <p style={styles.cardDesc}>{r.reason}</p>
+                    <div style={styles.actions}>
+                      <button onClick={() => deleteReport(r.id)} style={styles.deleteBtn}>Dismiss</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -190,7 +236,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 32,
+    marginBottom: 24,
     flexWrap: 'wrap',
     gap: 16,
   },
@@ -199,7 +245,8 @@ const styles = {
     fontSize: 28,
     color: '#e6edf3',
   },
-  filterBtns: { display: 'flex', gap: 8 },
+  tabBtns: { display: 'flex', gap: 8 },
+  filterBtns: { display: 'flex', gap: 8, marginBottom: 24 },
   filterBtn: {
     background: 'transparent',
     border: '1px solid #21262d',
@@ -245,22 +292,21 @@ const styles = {
     lineHeight: 1.5,
     marginBottom: 12,
   },
+  previewImg: {
+    width: '100%',
+    maxHeight: 160,
+    objectFit: 'cover',
+    marginBottom: 12,
+    border: '1px solid #21262d',
+  },
   cardLinks: {
     display: 'flex',
     gap: 16,
     flexWrap: 'wrap',
     marginBottom: 16,
   },
-  link: {
-    color: '#c9004a',
-    fontSize: 13,
-    textDecoration: 'none',
-  },
-  mono: {
-    fontSize: 11,
-    color: '#484f58',
-    fontFamily: 'Space Mono, monospace',
-  },
+  link: { color: '#c9004a', fontSize: 13, textDecoration: 'none' },
+  mono: { fontSize: 11, color: '#484f58', fontFamily: 'Space Mono, monospace' },
   actions: { display: 'flex', gap: 8, flexWrap: 'wrap' },
   deleteBtn: {
     background: 'transparent',
@@ -270,7 +316,6 @@ const styles = {
     fontSize: 13,
     cursor: 'pointer',
     fontFamily: 'Space Grotesk, sans-serif',
-    transition: 'color 0.15s, border-color 0.15s',
   },
   empty: {
     color: '#484f58',

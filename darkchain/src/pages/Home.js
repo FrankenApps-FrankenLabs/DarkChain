@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { CATEGORIES } from '../lib/constants';
 import DAppCard from '../components/DAppCard';
 
-export default function Home() {
+export default function Home({ wallet }) {
   const [dapps, setDapps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -101,7 +101,7 @@ export default function Home() {
         ) : (
           <div style={styles.grid}>
             {filtered.map(d => (
-              <DAppCard key={d.id} dapp={d} />
+              <DAppCard key={d.id} dapp={d} wallet={wallet} />
             ))}
           </div>
         )}
