@@ -1,9 +1,8 @@
 export const LCAI_CHAIN_ID = 9200;
 export const LCAI_CHAIN_ID_HEX = '0x23F0';
-export const RECEIVING_WALLET = '0x7FE522ab4F456cFc41FE7a7a0C94F28801CCA8fc';
+export const RECEIVING_WALLET = '0x8F26E2c70aAFf742863A2c7962B104f92de15De6';
 export const LISTING_FEE_LCAI = 100;
 export const LISTING_FEE_WEI = '100000000000000000000'; // 100 LCAI in wei
-
 export const LCAI_NETWORK = {
   chainId: LCAI_CHAIN_ID_HEX,
   chainName: 'LightChain AI',
@@ -11,7 +10,6 @@ export const LCAI_NETWORK = {
   rpcUrls: ['https://rpc.lightchain.ai'],
   blockExplorerUrls: ['https://explorer.lightchain.ai'],
 };
-
 export const CATEGORIES = [
   'DeFi',
   'Gaming',
@@ -23,5 +21,4 @@ export const CATEGORIES = [
   'Music',
   'Other',
 ];
-
 export const ADMIN_PASSWORD = process.env.REACT_APP_ADMIN_PASSWORD || 'darkchain_admin';
