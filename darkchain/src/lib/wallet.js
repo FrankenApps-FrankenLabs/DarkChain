@@ -4,7 +4,14 @@ import { LCAI_CHAIN_ID, LCAI_NETWORK, RECEIVING_WALLET, LISTING_FEE_WEI } from '
 export async function connectWallet() {
   if (!window.ethereum) throw new Error('MetaMask not found. Please install it.');
 
+  // Force MetaMask to show the account picker every time
+  await window.ethereum.request({
+    method: 'wallet_requestPermissions',
+    params: [{ eth_accounts: {} }],
+  });
+
   await window.ethereum.request({ method: 'eth_requestAccounts' });
+
   const provider = new ethers.providers.Web3Provider(window.ethereum);
   const network = await provider.getNetwork();
 
