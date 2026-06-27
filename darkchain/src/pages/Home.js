@@ -43,17 +43,17 @@ export default function Home() {
           <p style={styles.heroSub}>
             The index of dApps built on LightChain AI. Every project in one place.
           </p>
-          <div style={styles.stats}>
+          <div className="stats-row">
             <div style={styles.stat}>
               <span style={styles.statNum}>{dapps.length}</span>
               <span style={styles.statLabel}>Listed dApps</span>
             </div>
-            <div style={styles.statDivider} />
+            <div className="stats-divider" style={styles.statDivider} />
             <div style={styles.stat}>
               <span style={styles.statNum}>{CATEGORIES.length}</span>
               <span style={styles.statLabel}>Categories</span>
             </div>
-            <div style={styles.statDivider} />
+            <div className="stats-divider" style={styles.statDivider} />
             <div style={styles.stat}>
               <span style={styles.statNum}>9200</span>
               <span style={styles.statLabel}>Chain ID</span>

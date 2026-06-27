@@ -165,3 +165,21 @@ input, textarea, select {
     font-size: clamp(36px, 12vw, 60px);
   }
 }
+
+/* ─── Stats mobile wrap ─── */
+.stats-row {
+  display: flex;
+  align-items: center;
+  gap: 48px;
+}
+
+@media (max-width: 768px) {
+  .stats-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 24px;
+  }
+  .stats-divider {
+    display: none;
+  }
+}
