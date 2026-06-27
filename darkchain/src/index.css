@@ -1,5 +1,4 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
-
 :root {
   --bg: #080a0f;
   --bg-card: #0d1117;
@@ -17,13 +16,11 @@
   --font-display: 'Space Mono', monospace;
   --font-body: 'Space Grotesk', sans-serif;
 }
-
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
-
 body {
   background: var(--bg);
   color: var(--text-primary);
@@ -32,29 +29,23 @@ body {
   line-height: 1.6;
   min-height: 100vh;
 }
-
 a {
   color: var(--text-primary);
   text-decoration: none;
 }
-
 button {
   cursor: pointer;
   font-family: var(--font-body);
 }
-
 input, textarea, select {
   font-family: var(--font-body);
 }
-
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
-
 /* Utility */
 .mono { font-family: var(--font-mono); }
-
 .btn-primary {
   background: var(--accent);
   color: #fff;
@@ -66,18 +57,15 @@ input, textarea, select {
   cursor: pointer;
   transition: background 0.15s, box-shadow 0.15s;
 }
-
 .btn-primary:hover {
   background: #e6005a;
   box-shadow: 0 0 20px var(--accent-glow);
 }
-
 .btn-primary:disabled {
   background: var(--accent-dim);
   opacity: 0.5;
   cursor: not-allowed;
 }
-
 .btn-ghost {
   background: transparent;
   color: var(--text-secondary);
@@ -88,12 +76,10 @@ input, textarea, select {
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s;
 }
-
 .btn-ghost:hover {
   border-color: var(--border-bright);
   color: var(--text-primary);
 }
-
 .tag {
   display: inline-block;
   padding: 3px 10px;
@@ -105,11 +91,9 @@ input, textarea, select {
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
-
 .status-pending { color: var(--yellow); }
 .status-approved { color: var(--green); }
 .status-rejected { color: var(--accent); }
-
 .error-msg {
   background: rgba(201, 0, 74, 0.1);
   border: 1px solid var(--accent-dim);
@@ -118,7 +102,6 @@ input, textarea, select {
   font-size: 13px;
   margin: 12px 0;
 }
-
 .success-msg {
   background: rgba(63, 185, 80, 0.1);
   border: 1px solid #238636;
@@ -126,4 +109,41 @@ input, textarea, select {
   padding: 12px 16px;
   font-size: 13px;
   margin: 12px 0;
+}
+
+/* ─── Navbar responsive ─── */
+.nav-links {
+  display: flex;
+  gap: 48px;
+}
+.nav-right {
+  display: flex;
+  align-items: center;
+}
+.hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+}
+.bar {
+  display: block;
+  width: 24px;
+  height: 2px;
+  background: #e6edf3;
+}
+
+@media (max-width: 768px) {
+  .nav-links {
+    display: none;
+  }
+  .nav-right {
+    display: none;
+  }
+  .hamburger {
+    display: flex;
+  }
 }
