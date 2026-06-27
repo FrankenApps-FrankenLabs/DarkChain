@@ -37,7 +37,7 @@ export default function Home() {
       <div style={styles.hero}>
         <div style={styles.heroInner}>
           <div style={styles.eyebrow}>LightChain AI · Chain ID 9200</div>
-          <h1 style={styles.heroTitle}>
+          <h1 className="hero-title">
             DARK<span style={styles.accent}>CHAIN</span>
           </h1>
           <p style={styles.heroSub}>
@@ -129,15 +129,6 @@ const styles = {
     letterSpacing: '0.1em',
     marginBottom: 24,
     textTransform: 'uppercase',
-  },
-  heroTitle: {
-    fontFamily: 'Space Mono, monospace',
-    fontSize: 'clamp(80px, 10vw, 140px)',
-    fontWeight: 700,
-    lineHeight: 1,
-    letterSpacing: '-0.02em',
-    color: '#e6edf3',
-    marginBottom: 24,
   },
   accent: { color: '#c9004a' },
   heroSub: {

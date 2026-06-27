@@ -147,3 +147,21 @@ input, textarea, select {
     display: flex;
   }
 }
+
+/* ─── Hero title ─── */
+.hero-title {
+  font-family: 'Space Mono', monospace;
+  font-size: clamp(48px, 10vw, 140px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: #e6edf3;
+  margin-bottom: 24px;
+}
+
+/* ─── Mobile overrides ─── */
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: clamp(36px, 12vw, 60px);
+  }
+}
