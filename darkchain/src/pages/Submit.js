@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { connectWallet, payListingFee } from '../lib/wallet';
 import { CATEGORIES, LISTING_FEE_LCAI } from '../lib/constants';
 
-const STEPS = ['Connect Wallet', 'Pay Fee', 'Submit Details'];
+const STEPS = ['Connect Wallet', 'Submit Details', 'Pay Fee'];
 
 export default function Submit({ wallet, setWallet, setSigner, signerRef }) {
   const [step, setStep] = useState(wallet ? 1 : 0);
@@ -37,27 +37,22 @@ export default function Submit({ wallet, setWallet, setSigner, signerRef }) {
     setLoading(false);
   }
 
+  function handleFormNext() {
+    setError('');
+    if (!form.name || !form.description || !form.live_url) {
+      setError('Name, description, and live URL are required.');
+      return;
+    }
+    setStep(2);
+  }
+
   async function handlePay() {
     setError('');
     setLoading(true);
     try {
       const hash = await payListingFee(signerRef.current);
       setTxHash(hash);
-      setStep(2);
-    } catch (e) {
-      setError(e.message || 'Transaction failed or rejected.');
-    }
-    setLoading(false);
-  }
-
-  async function handleSubmit() {
-    setError('');
-    if (!form.name || !form.description || !form.live_url) {
-      setError('Name, description, and live URL are required.');
-      return;
-    }
-    setLoading(true);
-    try {
+      // Submit to DB after successful payment
       const tags = form.tags
         .split(',')
         .map(t => t.trim().toLowerCase())
@@ -72,14 +67,14 @@ export default function Submit({ wallet, setWallet, setSigner, signerRef }) {
         logo_url: form.logo_url || null,
         tags,
         wallet_address: wallet,
-        tx_hash: txHash,
+        tx_hash: hash,
         status: 'pending',
       });
 
       if (dbErr) throw new Error(dbErr.message);
       setSuccess(true);
     } catch (e) {
-      setError(e.message);
+      setError(e.message || 'Transaction failed or rejected.');
     }
     setLoading(false);
   }
@@ -143,39 +138,10 @@ export default function Submit({ wallet, setWallet, setSigner, signerRef }) {
           </div>
         )}
 
-        {/* Step 1: Pay */}
+        {/* Step 1: Form */}
         {step === 1 && (
-          <div style={styles.stepContent}>
-            <p style={styles.stepDesc}>
-              Send <strong style={{ color: '#e6edf3' }}>{LISTING_FEE_LCAI} LCAI</strong> to
-              complete your listing. This is a one-time fee.
-            </p>
-            <div style={styles.feeBox}>
-              <div style={styles.feeLine}>
-                <span style={styles.feeKey}>Amount</span>
-                <span style={styles.feeVal}>{LISTING_FEE_LCAI} LCAI</span>
-              </div>
-              <div style={styles.feeLine}>
-                <span style={styles.feeKey}>Network</span>
-                <span style={styles.feeVal}>LightChain AI (9200)</span>
-              </div>
-            </div>
-            <button className="btn-primary" onClick={handlePay} disabled={loading}>
-              {loading ? 'Waiting for transaction...' : `Pay ${LISTING_FEE_LCAI} LCAI`}
-            </button>
-          </div>
-        )}
-
-        {/* Step 2: Form */}
-        {step === 2 && (
           <div style={styles.form}>
-            {txHash && (
-              <div className="success-msg" style={{ fontSize: 12, fontFamily: 'Space Mono, monospace' }}>
-                Payment confirmed · {txHash.slice(0, 20)}...
-              </div>
-            )}
-
-            <Field label="dApp Name *" required>
+            <Field label="dApp Name *">
               <input
                 style={styles.input}
                 value={form.name}
@@ -241,9 +207,41 @@ export default function Submit({ wallet, setWallet, setSigner, signerRef }) {
               />
             </Field>
 
-            <button className="btn-primary" onClick={handleSubmit} disabled={loading} style={{ marginTop: 8 }}>
-              {loading ? 'Submitting...' : 'Submit for Review'}
+            <button className="btn-primary" onClick={handleFormNext} style={{ marginTop: 8 }}>
+              Continue to Payment
             </button>
+          </div>
+        )}
+
+        {/* Step 2: Pay */}
+        {step === 2 && (
+          <div style={styles.stepContent}>
+            <p style={styles.stepDesc}>
+              Almost done. Send <strong style={{ color: '#e6edf3' }}>{LISTING_FEE_LCAI} LCAI</strong> to
+              complete your listing.
+            </p>
+            <div style={styles.feeBox}>
+              <div style={styles.feeLine}>
+                <span style={styles.feeKey}>dApp</span>
+                <span style={styles.feeVal}>{form.name}</span>
+              </div>
+              <div style={styles.feeLine}>
+                <span style={styles.feeKey}>Amount</span>
+                <span style={styles.feeVal}>{LISTING_FEE_LCAI} LCAI</span>
+              </div>
+              <div style={styles.feeLine}>
+                <span style={styles.feeKey}>Network</span>
+                <span style={styles.feeVal}>LightChain AI (9200)</span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button className="btn-ghost" onClick={() => setStep(1)} disabled={loading}>
+                Back
+              </button>
+              <button className="btn-primary" onClick={handlePay} disabled={loading}>
+                {loading ? 'Waiting for transaction...' : `Pay ${LISTING_FEE_LCAI} LCAI`}
+              </button>
+            </div>
           </div>
         )}
       </div>
