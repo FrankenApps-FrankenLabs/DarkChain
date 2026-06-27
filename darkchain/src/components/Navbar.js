@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { shortenAddress } from '../lib/wallet';
 
-export default function Navbar({ wallet, onConnect }) {
+export default function Navbar({ wallet, onConnect, onDisconnect }) {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -31,9 +31,14 @@ export default function Navbar({ wallet, onConnect }) {
         {/* Desktop wallet */}
         <div className="nav-right">
           {wallet ? (
-            <div style={styles.walletBadge}>
-              <span style={styles.walletDot} />
-              {shortenAddress(wallet)}
+            <div style={styles.walletGroup}>
+              <div style={styles.walletBadge}>
+                <span style={styles.walletDot} />
+                {shortenAddress(wallet)}
+              </div>
+              <button style={styles.disconnectBtn} onClick={onDisconnect}>
+                Disconnect
+              </button>
             </div>
           ) : (
             <button className="btn-primary" onClick={onConnect} style={styles.connectBtn}>
@@ -61,9 +66,17 @@ export default function Navbar({ wallet, onConnect }) {
           <Link to="/submit" style={styles.mobileLink} onClick={() => setMenuOpen(false)}>List dApp</Link>
           <div style={{ height: 16 }} />
           {wallet ? (
-            <div style={styles.mobileWallet}>
-              <span style={styles.walletDot} />
-              {shortenAddress(wallet)}
+            <div>
+              <div style={styles.mobileWallet}>
+                <span style={styles.walletDot} />
+                {shortenAddress(wallet)}
+              </div>
+              <button
+                style={{ ...styles.disconnectBtn, marginTop: 12, width: '100%' }}
+                onClick={() => { onDisconnect(); setMenuOpen(false); }}
+              >
+                Disconnect
+              </button>
             </div>
           ) : (
             <button
@@ -139,6 +152,11 @@ const styles = {
   },
   linkActive: { color: '#e6edf3' },
   connectBtn: { padding: '12px 24px', fontSize: '16px' },
+  walletGroup: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+  },
   walletBadge: {
     display: 'flex',
     alignItems: 'center',
@@ -157,6 +175,16 @@ const styles = {
     background: '#3fb950',
     boxShadow: '0 0 6px #3fb950',
     flexShrink: 0,
+  },
+  disconnectBtn: {
+    background: 'transparent',
+    border: '1px solid #30363d',
+    color: '#484f58',
+    padding: '10px 16px',
+    fontSize: 13,
+    cursor: 'pointer',
+    fontFamily: 'Space Grotesk, sans-serif',
+    transition: 'all 0.15s',
   },
   mobileMenu: {
     display: 'flex',

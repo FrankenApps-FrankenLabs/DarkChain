@@ -24,9 +24,15 @@ export default function App() {
     }
   }
 
+  function handleDisconnect() {
+    setWallet('');
+    setSigner(null);
+    signerRef.current = null;
+  }
+
   return (
     <BrowserRouter>
-      <Navbar wallet={wallet} onConnect={handleConnect} />
+      <Navbar wallet={wallet} onConnect={handleConnect} onDisconnect={handleDisconnect} />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/submit" element={
