@@ -4,7 +4,6 @@ import { shortenAddress } from '../lib/wallet';
 
 export default function Navbar({ wallet, onConnect }) {
   const location = useLocation();
-
   return (
     <nav style={styles.nav}>
       <div style={styles.inner}>
@@ -13,7 +12,6 @@ export default function Navbar({ wallet, onConnect }) {
           <span style={styles.logoMain}>CHAIN</span>
           <span style={styles.logoDot} />
         </Link>
-
         <div style={styles.links}>
           <Link to="/" style={{
             ...styles.link,
@@ -24,7 +22,6 @@ export default function Navbar({ wallet, onConnect }) {
             ...(location.pathname === '/submit' ? styles.linkActive : {})
           }}>List dApp</Link>
         </div>
-
         <div style={styles.right}>
           {wallet ? (
             <div style={styles.walletBadge}>
@@ -32,7 +29,7 @@ export default function Navbar({ wallet, onConnect }) {
               {shortenAddress(wallet)}
             </div>
           ) : (
-            <button className="btn-primary" onClick={onConnect} style={{ padding: '8px 16px', fontSize: '13px' }}>
+            <button className="btn-primary" onClick={onConnect} style={{ padding: '12px 24px', fontSize: '16px' }}>
               Connect Wallet
             </button>
           )}
@@ -52,10 +49,10 @@ const styles = {
     zIndex: 100,
   },
   inner: {
-    maxWidth: 1200,
+    maxWidth: '100%',
     margin: '0 auto',
-    padding: '0 24px',
-    height: 60,
+    padding: '0 48px',
+    height: 80,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -68,34 +65,34 @@ const styles = {
   },
   logoAccent: {
     fontFamily: 'Space Mono, monospace',
-    fontSize: 18,
+    fontSize: 26,
     fontWeight: 700,
     color: '#c9004a',
     letterSpacing: '0.08em',
   },
   logoMain: {
     fontFamily: 'Space Mono, monospace',
-    fontSize: 18,
+    fontSize: 26,
     fontWeight: 700,
     color: '#e6edf3',
     letterSpacing: '0.08em',
   },
   logoDot: {
-    width: 6,
-    height: 6,
+    width: 8,
+    height: 8,
     borderRadius: '50%',
     background: '#c9004a',
-    marginLeft: 4,
-    marginBottom: 8,
+    marginLeft: 6,
+    marginBottom: 10,
     boxShadow: '0 0 8px #c9004a',
   },
   links: {
     display: 'flex',
-    gap: 32,
+    gap: 48,
   },
   link: {
     color: '#8b949e',
-    fontSize: 14,
+    fontSize: 18,
     fontWeight: 500,
     textDecoration: 'none',
     transition: 'color 0.15s',
@@ -111,17 +108,17 @@ const styles = {
   walletBadge: {
     display: 'flex',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     background: '#0d1117',
     border: '1px solid #21262d',
-    padding: '6px 14px',
-    fontSize: 13,
+    padding: '10px 20px',
+    fontSize: 16,
     fontFamily: 'Space Mono, monospace',
     color: '#8b949e',
   },
   walletDot: {
-    width: 7,
-    height: 7,
+    width: 9,
+    height: 9,
     borderRadius: '50%',
     background: '#3fb950',
     boxShadow: '0 0 6px #3fb950',
