@@ -71,17 +71,22 @@ export default function Submit({ wallet, setWallet, setSigner, signerRef }) {
     if (!agreed) { setError('You must agree to the terms before paying.'); return; }
     setLoading(true);
     try {
-      // Upload image if provided
+      // Upload image if provided — non-blocking, submission continues even if upload fails
       let logo_url = '';
       if (imageFile) {
-        const ext = imageFile.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error: uploadErr } = await supabase.storage
-          .from('dapp-images')
-          .upload(fileName, imageFile, { contentType: imageFile.type });
-        if (uploadErr) throw new Error('Image upload failed: ' + uploadErr.message);
-        const { data: urlData } = supabase.storage.from('dapp-images').getPublicUrl(fileName);
-        logo_url = urlData.publicUrl;
+        try {
+          const ext = imageFile.name.split('.').pop();
+          const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+          const { error: uploadErr } = await supabase.storage
+            .from('dapp-images')
+            .upload(fileName, imageFile, { contentType: imageFile.type });
+          if (!uploadErr) {
+            const { data: urlData } = supabase.storage.from('dapp-images').getPublicUrl(fileName);
+            logo_url = urlData.publicUrl;
+          }
+        } catch (_) {
+          // Image upload failed — continue without image
+        }
       }
 
       // Pay
