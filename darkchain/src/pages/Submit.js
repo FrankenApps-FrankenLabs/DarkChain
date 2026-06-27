@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { connectWallet, payListingFee } from '../lib/wallet';
 import { CATEGORIES, LISTING_FEE_LCAI } from '../lib/constants';
 
-const STEPS = ['Connect Wallet', 'Submit Details', 'Pay Fee'];
+const STEPS = ['Connect Wallet', 'Submit Details', 'Review & Pay'];
 
 export default function Submit({ wallet, setWallet, setSigner, signerRef }) {
   const [step, setStep] = useState(wallet ? 1 : 0);
@@ -11,6 +11,11 @@ export default function Submit({ wallet, setWallet, setSigner, signerRef }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [agreed, setAgreed] = useState(false);
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef(null);
 
   const [form, setForm] = useState({
     name: '',
@@ -18,7 +23,6 @@ export default function Submit({ wallet, setWallet, setSigner, signerRef }) {
     category: 'Utility',
     contract_address: '',
     live_url: '',
-    logo_url: '',
     tags: '',
   });
 
@@ -37,6 +41,22 @@ export default function Submit({ wallet, setWallet, setSigner, signerRef }) {
     setLoading(false);
   }
 
+  function handleImageFile(file) {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { setError('File must be an image.'); return; }
+    if (file.size > 5 * 1024 * 1024) { setError('Image must be under 5MB.'); return; }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+    setError('');
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    handleImageFile(file);
+  }
+
   function handleFormNext() {
     setError('');
     if (!form.name || !form.description || !form.live_url) {
@@ -48,11 +68,27 @@ export default function Submit({ wallet, setWallet, setSigner, signerRef }) {
 
   async function handlePay() {
     setError('');
+    if (!agreed) { setError('You must agree to the terms before paying.'); return; }
     setLoading(true);
     try {
+      // Upload image if provided
+      let logo_url = '';
+      if (imageFile) {
+        const ext = imageFile.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: uploadErr } = await supabase.storage
+          .from('dapp-images')
+          .upload(fileName, imageFile, { contentType: imageFile.type });
+        if (uploadErr) throw new Error('Image upload failed: ' + uploadErr.message);
+        const { data: urlData } = supabase.storage.from('dapp-images').getPublicUrl(fileName);
+        logo_url = urlData.publicUrl;
+      }
+
+      // Pay
       const hash = await payListingFee(signerRef.current);
       setTxHash(hash);
-      // Submit to DB after successful payment
+
+      // Insert to DB
       const tags = form.tags
         .split(',')
         .map(t => t.trim().toLowerCase())
@@ -64,7 +100,7 @@ export default function Submit({ wallet, setWallet, setSigner, signerRef }) {
         category: form.category,
         contract_address: form.contract_address || null,
         live_url: form.live_url,
-        logo_url: form.logo_url || null,
+        logo_url: logo_url || null,
         tags,
         wallet_address: wallet,
         tx_hash: hash,
@@ -189,15 +225,6 @@ export default function Submit({ wallet, setWallet, setSigner, signerRef }) {
               />
             </Field>
 
-            <Field label="Logo URL">
-              <input
-                style={styles.input}
-                value={form.logo_url}
-                onChange={e => setForm({ ...form, logo_url: e.target.value })}
-                placeholder="https://... (optional)"
-              />
-            </Field>
-
             <Field label="Tags" hint="Comma separated, e.g. blackjack, casino, cards">
               <input
                 style={styles.input}
@@ -207,23 +234,61 @@ export default function Submit({ wallet, setWallet, setSigner, signerRef }) {
               />
             </Field>
 
+            <Field label="dApp Image">
+              <div
+                style={{
+                  ...styles.dropzone,
+                  ...(dragOver ? styles.dropzoneActive : {}),
+                }}
+                onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current.click()}
+              >
+                {imagePreview ? (
+                  <img src={imagePreview} alt="Preview" style={styles.imagePreview} />
+                ) : (
+                  <div style={styles.dropzoneInner}>
+                    <div style={styles.dropzoneIcon}>↑</div>
+                    <div style={styles.dropzoneText}>Drag & drop or click to upload</div>
+                    <div style={styles.dropzoneHint}>PNG, JPG, GIF · Max 5MB</div>
+                  </div>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={e => handleImageFile(e.target.files[0])}
+                />
+              </div>
+              {imagePreview && (
+                <button
+                  style={styles.removeImg}
+                  onClick={e => { e.stopPropagation(); setImageFile(null); setImagePreview(''); }}
+                >
+                  Remove image
+                </button>
+              )}
+            </Field>
+
             <button className="btn-primary" onClick={handleFormNext} style={{ marginTop: 8 }}>
-              Continue to Payment
+              Continue to Review
             </button>
           </div>
         )}
 
-        {/* Step 2: Pay */}
+        {/* Step 2: Review & Pay */}
         {step === 2 && (
           <div style={styles.stepContent}>
-            <p style={styles.stepDesc}>
-              Almost done. Send <strong style={{ color: '#e6edf3' }}>{LISTING_FEE_LCAI} LCAI</strong> to
-              complete your listing.
-            </p>
             <div style={styles.feeBox}>
               <div style={styles.feeLine}>
                 <span style={styles.feeKey}>dApp</span>
                 <span style={styles.feeVal}>{form.name}</span>
+              </div>
+              <div style={styles.feeLine}>
+                <span style={styles.feeKey}>Category</span>
+                <span style={styles.feeVal}>{form.category}</span>
               </div>
               <div style={styles.feeLine}>
                 <span style={styles.feeKey}>Amount</span>
@@ -234,12 +299,39 @@ export default function Submit({ wallet, setWallet, setSigner, signerRef }) {
                 <span style={styles.feeVal}>LightChain AI (9200)</span>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button className="btn-ghost" onClick={() => setStep(1)} disabled={loading}>
+
+            {/* Disclaimer */}
+            <div style={styles.disclaimer}>
+              <p style={styles.disclaimerText}>
+                By submitting, you agree to the following:
+              </p>
+              <ul style={styles.disclaimerList}>
+                <li>The listing fee of <strong style={{ color: '#e6edf3' }}>{LISTING_FEE_LCAI} LCAI is non-refundable</strong>, even if your submission is rejected.</li>
+                <li>Content involving child exploitation, pornography, or death-related media is strictly forbidden and will be permanently removed.</li>
+                <li>DarkChain reserves the right to remove any listing that violates these terms without notice or refund.</li>
+              </ul>
+              <label style={styles.checkLabel}>
+                <input
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={e => setAgreed(e.target.checked)}
+                  style={styles.checkbox}
+                />
+                <span>I have read and agree to the above terms</span>
+              </label>
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+              <button className="btn-ghost" onClick={() => setStep(1)} disabled={loading} style={{ fontSize: 13, padding: '10px 20px' }}>
                 Back
               </button>
-              <button className="btn-primary" onClick={handlePay} disabled={loading}>
-                {loading ? 'Waiting for transaction...' : `Pay ${LISTING_FEE_LCAI} LCAI`}
+              <button
+                className="btn-primary"
+                onClick={handlePay}
+                disabled={loading || !agreed}
+                style={{ fontSize: 13, padding: '10px 20px' }}
+              >
+                {loading ? 'Processing...' : `Pay ${LISTING_FEE_LCAI} LCAI & Submit`}
               </button>
             </div>
           </div>
@@ -276,7 +368,6 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     marginBottom: 40,
-    gap: 0,
   },
   stepWrap: {
     display: 'flex',
@@ -296,27 +387,10 @@ const styles = {
     justifyContent: 'center',
     flexShrink: 0,
   },
-  stepActive: {
-    background: '#c9004a',
-    borderColor: '#c9004a',
-    color: '#fff',
-  },
-  stepDone: {
-    background: '#0d2818',
-    borderColor: '#238636',
-    color: '#3fb950',
-  },
-  stepLabel: {
-    fontSize: 12,
-    fontWeight: 500,
-    whiteSpace: 'nowrap',
-  },
-  stepLine: {
-    width: 32,
-    height: 1,
-    background: '#21262d',
-    margin: '0 8px',
-  },
+  stepActive: { background: '#c9004a', borderColor: '#c9004a', color: '#fff' },
+  stepDone: { background: '#0d2818', borderColor: '#238636', color: '#3fb950' },
+  stepLabel: { fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap' },
+  stepLine: { width: 32, height: 1, background: '#21262d', margin: '0 8px' },
   stepContent: { padding: '32px 0' },
   stepDesc: { color: '#8b949e', fontSize: 14, marginBottom: 24, lineHeight: 1.6 },
   feeBox: {
@@ -333,6 +407,36 @@ const styles = {
   },
   feeKey: { fontSize: 13, color: '#8b949e' },
   feeVal: { fontSize: 13, color: '#e6edf3', fontFamily: 'Space Mono, monospace' },
+  disclaimer: {
+    background: '#0d1117',
+    border: '1px solid #30363d',
+    padding: 16,
+  },
+  disclaimerText: {
+    fontSize: 13,
+    color: '#8b949e',
+    marginBottom: 10,
+  },
+  disclaimerList: {
+    fontSize: 13,
+    color: '#8b949e',
+    lineHeight: 1.7,
+    paddingLeft: 20,
+    marginBottom: 16,
+  },
+  checkLabel: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: 10,
+    fontSize: 13,
+    color: '#e6edf3',
+    cursor: 'pointer',
+  },
+  checkbox: {
+    marginTop: 2,
+    accentColor: '#c9004a',
+    flexShrink: 0,
+  },
   form: { paddingTop: 8 },
   label: {
     display: 'block',
@@ -353,12 +457,58 @@ const styles = {
     fontSize: 14,
     outline: 'none',
     display: 'block',
+  },
+  dropzone: {
+    width: '100%',
+    minHeight: 160,
+    background: '#0d1117',
+    border: '2px dashed #21262d',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
     transition: 'border-color 0.15s',
+    overflow: 'hidden',
   },
-  successBox: {
-    textAlign: 'center',
-    padding: '80px 0',
+  dropzoneActive: {
+    borderColor: '#c9004a',
   },
+  dropzoneInner: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 8,
+    padding: 24,
+  },
+  dropzoneIcon: {
+    fontSize: 28,
+    color: '#484f58',
+  },
+  dropzoneText: {
+    fontSize: 14,
+    color: '#8b949e',
+  },
+  dropzoneHint: {
+    fontSize: 11,
+    color: '#484f58',
+  },
+  imagePreview: {
+    width: '100%',
+    height: 200,
+    objectFit: 'cover',
+    display: 'block',
+  },
+  removeImg: {
+    background: 'none',
+    border: 'none',
+    color: '#484f58',
+    fontSize: 12,
+    cursor: 'pointer',
+    marginTop: 6,
+    padding: 0,
+    textDecoration: 'underline',
+  },
+  successBox: { textAlign: 'center', padding: '80px 0' },
   successIcon: {
     width: 64,
     height: 64,
