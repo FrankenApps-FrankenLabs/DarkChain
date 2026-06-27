@@ -9,6 +9,7 @@ export default function Admin() {
   const [pwError, setPwError] = useState('');
   const [dapps, setDapps] = useState([]);
   const [reports, setReports] = useState([]);
+  const [promos, setPromos] = useState([]);
   const [filter, setFilter] = useState('pending');
   const [tab, setTab] = useState('dapps');
   const [loading, setLoading] = useState(false);
@@ -24,6 +25,7 @@ export default function Admin() {
   useEffect(() => {
     if (authed && tab === 'dapps') fetchDapps();
     if (authed && tab === 'reports') fetchReports();
+    if (authed && tab === 'promos') fetchPromos();
   }, [authed, filter, tab]);
 
   async function fetchDapps() {
@@ -56,6 +58,24 @@ export default function Admin() {
     if (!window.confirm('Delete this listing permanently?')) return;
     await supabase.from('dapps').delete().eq('id', id);
     fetchDapps();
+  }
+
+  async function fetchPromos() {
+    setLoading(true);
+    const { data } = await supabase.from('promo_codes').select('*').order('created_at', { ascending: false });
+    setPromos(data || []);
+    setLoading(false);
+  }
+
+  async function togglePromo(id, active) {
+    await supabase.from('promo_codes').update({ active: !active }).eq('id', id);
+    fetchPromos();
+  }
+
+  async function deletePromo(id) {
+    if (!window.confirm('Delete this promo code?')) return;
+    await supabase.from('promo_codes').delete().eq('id', id);
+    fetchPromos();
   }
 
   async function deleteReport(id) {
@@ -91,7 +111,7 @@ export default function Admin() {
         <div style={styles.header}>
           <h1 style={styles.title}>Admin Panel</h1>
           <div style={styles.tabBtns}>
-            {['dapps', 'reports'].map(t => (
+            {['dapps', 'reports', 'promos'].map(t => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -159,6 +179,45 @@ export default function Admin() {
                         </button>
                       )}
                       <button onClick={() => deleteDapp(d.id)} style={styles.deleteBtn}>Delete</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Promos tab */}
+        {tab === 'promos' && (
+          <>
+            {loading ? (
+              <div style={styles.empty}>Loading...</div>
+            ) : promos.length === 0 ? (
+              <div style={styles.empty}>No promo codes.</div>
+            ) : (
+              <div style={styles.list}>
+                {promos.map(p => (
+                  <div key={p.id} style={styles.card}>
+                    <div style={styles.cardTop}>
+                      <div>
+                        <div style={styles.cardName}>{p.code}</div>
+                        <div style={styles.cardMeta}>
+                          {p.discount_percent}% discount · Created {new Date(p.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 12, fontFamily: 'Space Mono, monospace', textTransform: 'uppercase', color: p.active ? '#3fb950' : '#484f58' }}>
+                        {p.active ? 'ACTIVE' : 'INACTIVE'}
+                      </span>
+                    </div>
+                    <div style={styles.actions}>
+                      <button
+                        className={p.active ? 'btn-ghost' : 'btn-primary'}
+                        onClick={() => togglePromo(p.id, p.active)}
+                        style={{ padding: '7px 16px', fontSize: 13 }}
+                      >
+                        {p.active ? 'Disable' : 'Enable'}
+                      </button>
+                      <button onClick={() => deletePromo(p.id)} style={styles.deleteBtn}>Delete</button>
                     </div>
                   </div>
                 ))}

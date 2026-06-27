@@ -12,6 +12,10 @@ export default function Submit({ wallet, setWallet, setSigner, signerRef }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [promoCode, setPromoCode] = useState('');
+  const [promoValid, setPromoValid] = useState(false);
+  const [promoChecking, setPromoChecking] = useState(false);
+  const [promoError, setPromoError] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const [dragOver, setDragOver] = useState(false);
@@ -66,6 +70,25 @@ export default function Submit({ wallet, setWallet, setSigner, signerRef }) {
     setStep(2);
   }
 
+  async function checkPromo() {
+    if (!promoCode.trim()) return;
+    setPromoChecking(true);
+    setPromoError('');
+    setPromoValid(false);
+    const { data } = await supabase
+      .from('promo_codes')
+      .select('*')
+      .eq('code', promoCode.trim().toUpperCase())
+      .eq('active', true)
+      .maybeSingle();
+    if (data) {
+      setPromoValid(true);
+    } else {
+      setPromoError('Invalid or inactive promo code.');
+    }
+    setPromoChecking(false);
+  }
+
   async function handlePay() {
     setError('');
     if (!agreed) { setError('You must agree to the terms before paying.'); return; }
@@ -89,8 +112,11 @@ export default function Submit({ wallet, setWallet, setSigner, signerRef }) {
         }
       }
 
-      // Pay
-      const hash = await payListingFee(signerRef.current);
+      // Pay — skip if valid promo code
+      let hash = 'PROMO-FREE';
+      if (!promoValid) {
+        hash = await payListingFee(signerRef.current);
+      }
       setTxHash(hash);
 
       // Insert to DB
@@ -305,6 +331,32 @@ export default function Submit({ wallet, setWallet, setSigner, signerRef }) {
               </div>
             </div>
 
+            {/* Promo Code */}
+            <div style={styles.promoBox}>
+              <div style={styles.promoRow}>
+                <input
+                  style={{ ...styles.input, flex: 1 }}
+                  placeholder="Promo code (optional)"
+                  value={promoCode}
+                  onChange={e => { setPromoCode(e.target.value); setPromoValid(false); setPromoError(''); }}
+                />
+                <button
+                  className="btn-ghost"
+                  onClick={checkPromo}
+                  disabled={promoChecking || !promoCode.trim()}
+                  style={{ fontSize: 13, padding: '10px 16px', whiteSpace: 'nowrap' }}
+                >
+                  {promoChecking ? 'Checking...' : 'Apply'}
+                </button>
+              </div>
+              {promoValid && (
+                <div style={styles.promoSuccess}>✓ Promo applied — listing is free!</div>
+              )}
+              {promoError && (
+                <div style={styles.promoErr}>{promoError}</div>
+              )}
+            </div>
+
             {/* Disclaimer */}
             <div style={styles.disclaimer}>
               <p style={styles.disclaimerText}>
@@ -336,7 +388,7 @@ export default function Submit({ wallet, setWallet, setSigner, signerRef }) {
                 disabled={loading || !agreed}
                 style={{ fontSize: 13, padding: '10px 20px' }}
               >
-                {loading ? 'Processing...' : `Pay ${LISTING_FEE_LCAI} LCAI & Submit`}
+                {loading ? 'Processing...' : promoValid ? 'Submit for Free' : `Pay ${LISTING_FEE_LCAI} LCAI & Submit`}
               </button>
             </div>
           </div>
@@ -512,6 +564,24 @@ const styles = {
     marginTop: 6,
     padding: 0,
     textDecoration: 'underline',
+  },
+  promoBox: {
+    marginBottom: 20,
+  },
+  promoRow: {
+    display: 'flex',
+    gap: 8,
+    alignItems: 'center',
+  },
+  promoSuccess: {
+    color: '#3fb950',
+    fontSize: 13,
+    marginTop: 8,
+  },
+  promoErr: {
+    color: '#ff6b9d',
+    fontSize: 13,
+    marginTop: 8,
   },
   successBox: { textAlign: 'center', padding: '80px 0' },
   successIcon: {
